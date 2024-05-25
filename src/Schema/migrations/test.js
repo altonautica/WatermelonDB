@@ -1,4 +1,13 @@
-import { createTable, addColumns, unsafeExecuteSql, schemaMigrations } from './index'
+import {
+  createTable,
+  addColumns,
+  destroyColumn,
+  renameColumn,
+  schemaMigrations,
+  destroyTable,
+  makeColumnOptional,
+  makeColumnRequired,
+} from './index'
 import { stepsForMigration } from './stepsForMigration'
 
 describe('schemaMigrations()', () => {
@@ -30,7 +39,25 @@ describe('schemaMigrations()', () => {
   it('returns a complex schema migrations spec', () => {
     const migrations = schemaMigrations({
       migrations: [
-        { toVersion: 4, steps: [] },
+        { toVersion: 7, steps: [makeColumnOptional({ table: 'comments', column: 'body'}), makeColumnRequired({ table: 'comments', column: 'body', defaultValue: ''})]},
+        { toVersion: 6, steps: [destroyTable({ table: 'comments' })] },
+        {
+          toVersion: 5,
+          steps: [renameColumn({ table: 'comments', from: 'text', to: 'body' })],
+        },
+        {
+          toVersion: 4,
+          steps: [
+            addColumns({
+              table: 'comments',
+              columns: [{ name: 'text', type: 'string' }],
+            }),
+            destroyColumn({
+              table: 'comments',
+              column: 'body',
+            }),
+          ],
+        },
         {
           toVersion: 3,
           steps: [
@@ -64,7 +91,7 @@ describe('schemaMigrations()', () => {
     expect(migrations).toEqual({
       validated: true,
       minVersion: 1,
-      maxVersion: 4,
+      maxVersion: 7,
       sortedMigrations: [
         {
           toVersion: 2,
@@ -103,7 +130,57 @@ describe('schemaMigrations()', () => {
             },
           ],
         },
-        { toVersion: 4, steps: [] },
+        {
+          toVersion: 4,
+          steps: [
+            {
+              type: 'add_columns',
+              table: 'comments',
+              columns: [{ name: 'text', type: 'string' }],
+            },
+            {
+              type: 'destroy_column',
+              table: 'comments',
+              column: 'body',
+            },
+          ],
+        },
+        {
+          toVersion: 5,
+          steps: [
+            {
+              type: 'rename_column',
+              table: 'comments',
+              from: 'text',
+              to: 'body',
+            },
+          ],
+        },
+        {
+          toVersion: 6,
+          steps: [
+            {
+              type: 'destroy_table',
+              table: 'comments',
+            },
+          ],
+        },
+        {
+          toVersion: 7,
+          steps: [
+            {
+              type: 'make_column_optional',
+              table: 'comments',
+              column: 'body',
+            },
+            {
+              type: 'make_column_required',
+              table: 'comments',
+              column: 'body',
+              defaultValue: '',
+            },
+          ],
+        },
       ],
     })
   })
@@ -181,10 +258,50 @@ describe('migration step functions', () => {
       'type',
     )
   })
-  it('throws if unsafeExecuteSql() is malformed', () => {
-    expect(() => unsafeExecuteSql()).toThrow('not a string')
-    expect(() => unsafeExecuteSql('delete from table_a')).toThrow('semicolon')
-    expect(() => unsafeExecuteSql('delete from table_a;')).not.toThrow()
+  it('throws if destroyColumn() is malformed', () => {
+    expect(() => destroyColumn({ column: 'foo' })).toThrow('table')
+    expect(() => destroyColumn({ table: 'foo' })).toThrow('column')
+  })
+  it('throws if renameColumn() is malformed', () => {
+    expect(() => renameColumn({ from: 'text', to: 'body' })).toThrow('table')
+    expect(() => renameColumn({ table: 'foo', from: 'text' })).toThrow('to')
+    expect(() => renameColumn({ table: 'foo', to: 'body' })).toThrow('from')
+  })
+  it('throws if destroyTable() is malformed', () => {
+    expect(() => destroyTable()).toThrow('table')
+  })
+  it('does not allow unsafe names', () => {
+    // TODO: Move to a common location with Schema/test
+    ;[
+      '"hey"',
+      "'hey'",
+      '`hey`',
+      "foo' and delete * from users --",
+      'id',
+      '_changed',
+      '_status',
+      'local_storage',
+      '$loki',
+      '__foo',
+      '__proto__',
+      'toString',
+      'valueOf',
+      'oid',
+      '_rowid_',
+      'ROWID',
+    ].forEach((name) => {
+      // console.log(name)
+      expect(() => createTable({ name: 'foo', columns: [{ name, type: 'string' }] })).toThrow(
+        'name',
+      )
+      expect(() => createTable({ name, columns: [{ name: 'hey', type: 'string' }] })).toThrow(
+        'name',
+      )
+      expect(() => addColumns({ table: 'foo', columns: [{ name, type: 'string' }] })).toThrow(
+        'name',
+      )
+      expect(() => renameColumn({ table: 'foo', from: 'hey', to: name })).toThrow('name')
+    })
   })
 })
 

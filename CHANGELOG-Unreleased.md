@@ -11,6 +11,10 @@
 
 - Added `Database#experimentalIsVerbose` option
 - Support for React Native 0.74+
+- New migration steps available:
+  - `destroyColumn` (see docs for limitations)
+  - `renameColumn` (see docs for limitations)
+  - `destroyTable`
 
 ### Fixes
 

@@ -1,14 +1,13 @@
 {
   "name": "@altonaut/watermelondb",
   "description": "Build powerful React Native and React web apps that scale from hundreds to tens of thousands of records and remain fast",
-  "version": "0.28.1-3",
+  "version": "0.28.1-4",
   "engines": {
     "node": ">=18"
   },
   "scripts": {
     "up": "yarn",
     "build": "NODE_ENV=production node ./scripts/make.mjs",
-    "build:local": "yarn build && cp -r dist/. ../wmdb-dist",
     "dev": "NODE_ENV=development node ./scripts/make.mjs",
     "dev:native": "react-native start",
     "release": "node ./scripts/release.mjs",

@@ -15,6 +15,7 @@ import type {
   SchemaMigrations,
   CreateTableMigrationStep,
   AddColumnsMigrationStep,
+  AddColumnIndexMigrationStep,
   DestroyColumnMigrationStep,
   RenameColumnMigrationStep,
   DestroyTableMigrationStep,
@@ -399,7 +400,9 @@ export default class DatabaseDriver {
         this._executeRenameColumnMigration(step)
       } else if (step.type === 'destroy_table') {
         this._executeDestroyTableMigration(step)
-      } else if (step.type === 'sql') {
+      } else if (step.type === "add_column_index") {
+        this._executeAddColumnIndexMigration(step)
+      } else if (step.type === 'remove_column_index' || step.type === "make_column_required" || step.type === "make_column_optional" || step.type === 'sql') {
         // ignore
       } else {
         throw new Error(`Unsupported migration step ${step.type}`)
@@ -433,6 +436,15 @@ export default class DatabaseDriver {
       }
     })
   }
+  _executeAddColumnIndexMigration({ table, column }: AddColumnIndexMigrationStep): void {
+    const collection = this.loki.getCollection(table)
+
+    // add indexes, if needed
+    if (column.isIndexed) {
+      collection.ensureIndex(column.name)
+    }
+  }
+
   _executeDestroyColumnMigration({ table, column }: DestroyColumnMigrationStep): void {
     const collection = this.loki.getCollection(table)
 

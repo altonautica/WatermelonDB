@@ -18,6 +18,8 @@
 
 ### Fixes
 
+- [JSI] `Database::initialized_`, `Database::isDestroyed_` and `SqliteDb::isDestroyed_` now start as `false`. They were never initialised, so a database could start out "destroyed": `unsafeClose`/`destroy()` then returned early without finalising statements or calling `sqlite3_close`, leaking every connection until garbage collection.
+
 - [ts] Improved LocalStorage type definition
 - [ts] Add missing .d.ts for experimentalFailsafe decorator
 - [migrations] `unsafeExecuteSql` migration is now validate to ensure it ends with a semicolon (#1811)

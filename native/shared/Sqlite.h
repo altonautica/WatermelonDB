@@ -18,7 +18,7 @@ public:
     SqliteDb(const SqliteDb &) = delete;
 
 private:
-    bool isDestroyed_;
+    bool isDestroyed_ = false;
 };
 
 class SqliteStatement {
